@@ -16,7 +16,7 @@
 
 // @ts-check
 const path = require('path');
-const devices = require('../../packages/playwright-core/lib/server/deviceDescriptorsSource.json');
+const devices = require('../../packages/playwright-core-electron-only/lib/server/deviceDescriptorsSource.json');
 const md = require('../markdown');
 const docs = require('../doclint/documentation');
 const PROJECT_DIR = path.join(__dirname, '..', '..');
@@ -498,8 +498,7 @@ class TypesGenerator {
 
 (async function () {
   const coreDocumentation = parseApi(path.join(PROJECT_DIR, 'docs', 'src', 'api'));
-  const testDocumentation = parseApi(path.join(PROJECT_DIR, 'docs', 'src', 'test-api'), path.join(PROJECT_DIR, 'docs', 'src', 'api', 'params.md'));
-  const reporterDocumentation = parseApi(path.join(PROJECT_DIR, 'docs', 'src', 'test-reporter-api'));
+
   const assertionClasses = new Set([
     'APIResponseAssertions',
     'GenericAssertions',
@@ -526,11 +525,7 @@ class TypesGenerator {
       `  [key: string]: DeviceDescriptor;`,
       `}`,
       ``,
-      `export interface ChromiumBrowserContext extends BrowserContext { }`,
-      `export interface ChromiumBrowser extends Browser { }`,
-      `export interface FirefoxBrowser extends Browser { }`,
-      `export interface WebKitBrowser extends Browser { }`,
-      `export interface ChromiumCoverage extends Coverage { }`,
+
       ``,
     ].join('\n');
     for (const [key, value] of Object.entries(exported))
@@ -538,102 +533,7 @@ class TypesGenerator {
     return types;
   }
 
-  /**
-   * @returns {Promise<string>}
-   */
-  async function generateTestTypes() {
-    const documentation = coreDocumentation.mergeWith(testDocumentation);
-    const generator = new TypesGenerator({
-      documentation,
-      doNotGenerate: new Set([
-        ...coreDocumentation.classesArray.map(cls => cls.name).filter(name => !assertionClasses.has(name)),
-        'Fixtures',
-        'GenericAssertions.any',
-        'GenericAssertions.anything',
-        'GenericAssertions.arrayContaining',
-        'GenericAssertions.closeTo',
-        'GenericAssertions.objectContaining',
-        'GenericAssertions.stringContaining',
-        'GenericAssertions.stringMatching',
-        'PlaywrightAssertions',
-        'Test',
-        'TestOptions',
-      ]),
-      overridesToDocsClassMapping: new Map([
-        ['AsymmetricMatchers', 'GenericAssertions'],
-        ['PlaywrightTestArgs', 'Fixtures'],
-        ['PlaywrightTestOptions', 'TestOptions'],
-        ['PlaywrightWorkerArgs', 'Fixtures'],
-        ['PlaywrightWorkerOptions', 'TestOptions'],
-        ['TestType', 'Test'],
-      ]),
-      ignoreMissing: new Set([
-        'Config',
-        'ExpectMatcherUtils',
-        'Matchers',
-        'PlaywrightWorkerArgs.playwright',
-        'PlaywrightWorkerOptions.defaultBrowserType',
-        'Project',
-      ]),
-      doNotExportClassNames: assertionClasses,
-    });
-    return await generator.generateTypes(path.join(__dirname, 'overrides-test.d.ts'));
-  }
 
-  /**
-   * @returns {Promise<string>}
-   */
-  async function generateReporterTypes() {
-    const documentation = coreDocumentation.mergeWith(testDocumentation).mergeWith(reporterDocumentation);
-    const generator = new TypesGenerator({
-      documentation,
-      doNotGenerate: new Set([
-        ...coreDocumentation.classesArray.map(cls => cls.name),
-        ...testDocumentation.classesArray.map(cls => cls.name),
-      ]),
-      ignoreMissing: new Set([
-        'FullResult',
-        'JSONReport',
-        'JSONReportError',
-        'JSONReportSpec',
-        'JSONReportSuite',
-        'JSONReportTest',
-        'JSONReportTestResult',
-        'JSONReportTestStep',
-      ]),
-    });
-    return await generator.generateTypes(path.join(__dirname, 'overrides-testReporter.d.ts'));
-  }
-
-  /**
-   * @param {string} filePath
-   * @param {string} content
-   * @param {boolean} removeTrailingWhiteSpace
-   */
-  function writeFile(filePath, content, removeTrailingWhiteSpace) {
-    content = content.replace(/\r\n/g, '\n');
-    if (removeTrailingWhiteSpace)
-      content = content.replace(/( +)\n/g, '\n'); // remove trailing whitespace
-    const existing = fs.readFileSync(filePath, 'utf8');
-    if (existing === content)
-      return;
-    console.error(`Writing //${path.relative(PROJECT_DIR, filePath)}`);
-    fs.writeFileSync(filePath, content, 'utf8');
-  }
-
-  const coreTypesDir = path.join(PROJECT_DIR, 'packages', 'playwright-core', 'types');
-  const clientTypesDir = path.join(PROJECT_DIR, 'packages', 'playwright-client', 'types');
-  if (!fs.existsSync(coreTypesDir))
-    fs.mkdirSync(coreTypesDir)
-  const playwrightTypesDir = path.join(PROJECT_DIR, 'packages', 'playwright', 'types');
-  if (!fs.existsSync(playwrightTypesDir))
-    fs.mkdirSync(playwrightTypesDir)
-  writeFile(path.join(coreTypesDir, 'protocol.d.ts'), fs.readFileSync(path.join(PROJECT_DIR, 'packages', 'playwright-core', 'src', 'server', 'chromium', 'protocol.d.ts'), 'utf8'), false);
-  const coreTypes = await generateCoreTypes();
-  writeFile(path.join(coreTypesDir, 'types.d.ts'), coreTypes, true);
-  writeFile(path.join(clientTypesDir, 'types.d.ts'), coreTypes, true);
-  writeFile(path.join(playwrightTypesDir, 'test.d.ts'), await generateTestTypes(), true);
-  writeFile(path.join(playwrightTypesDir, 'testReporter.d.ts'), await generateReporterTypes(), true);
   process.exit(0);
 })().catch(e => {
   console.error(e);

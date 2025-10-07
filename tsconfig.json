@@ -10,16 +10,8 @@
          - @foo/* is for importing types only,
          - .../lib/* means require dependency
       */
-      "@html-reporter/*": ["./packages/html-reporter/src/*"],
-      "@injected/*": ["./packages/injected/src/*"],
-      "@isomorphic/*": ["./packages/playwright-core/src/utils/isomorphic/*"],
-      "@protocol/*": ["./packages/protocol/src/*"],
-      "@recorder/*": ["./packages/recorder/src/*"],
-      "@testIsomorphic/*": ["./packages/playwright/src/isomorphic/*"],
-      "@trace/*": ["./packages/trace/src/*"],
-      "@web/*": ["./packages/web/src/*"],
-      "playwright-core/lib/*": ["./packages/playwright-core/src/*"],
-      "playwright/lib/*": ["./packages/playwright/src/*"],
+      "@isomorphic/*": ["./packages/playwright-core-electron-only/src/utils/isomorphic/*"],
+      "playwright-core-electron-only/lib/*": ["./packages/playwright-core-electron-only/src/*"],
     },
     "esModuleInterop": true,
     "strict": true,

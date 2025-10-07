@@ -641,55 +641,7 @@ Whether to emulate network being offline. Defaults to `false`. Learn more about 
 Credentials for [HTTP authentication](https://developer.mozilla.org/en-US/docs/Web/HTTP/Authentication).
 If no origin is specified, the username and password are sent to any servers upon unauthorized responses.
 
-## context-option-colorscheme
-* langs: js, java
-- `colorScheme` <null|[ColorScheme]<"light"|"dark"|"no-preference">>
 
-Emulates [prefers-colors-scheme](https://developer.mozilla.org/en-US/docs/Web/CSS/@media/prefers-color-scheme) media feature, supported values are `'light'` and `'dark'`. See
-[`method: Page.emulateMedia`] for more details. Passing `null` resets emulation to system defaults. Defaults to `'light'`.
-
-## context-option-colorscheme-csharp-python
-* langs: csharp, python
-- `colorScheme` <[ColorScheme]<"light"|"dark"|"no-preference"|"null">>
-
-Emulates [prefers-colors-scheme](https://developer.mozilla.org/en-US/docs/Web/CSS/@media/prefers-color-scheme) media feature, supported values are `'light'` and `'dark'`. See
-[`method: Page.emulateMedia`] for more details. Passing `'null'` resets emulation to system defaults. Defaults to `'light'`.
-
-## context-option-reducedMotion
-* langs: js, java
-- `reducedMotion` <null|[ReducedMotion]<"reduce"|"no-preference">>
-
-Emulates `'prefers-reduced-motion'` media feature, supported values are `'reduce'`, `'no-preference'`. See [`method: Page.emulateMedia`] for more details. Passing `null` resets emulation to system defaults. Defaults to `'no-preference'`.
-
-## context-option-reducedMotion-csharp-python
-* langs: csharp, python
-- `reducedMotion` <[ReducedMotion]<"reduce"|"no-preference"|"null">>
-
-Emulates `'prefers-reduced-motion'` media feature, supported values are `'reduce'`, `'no-preference'`. See [`method: Page.emulateMedia`] for more details. Passing `'null'` resets emulation to system defaults. Defaults to `'no-preference'`.
-
-## context-option-forcedColors
-* langs: js, java
-- `forcedColors` <null|[ForcedColors]<"active"|"none">>
-
-Emulates `'forced-colors'` media feature, supported values are `'active'`, `'none'`. See [`method: Page.emulateMedia`] for more details. Passing `null` resets emulation to system defaults. Defaults to `'none'`.
-
-## context-option-forcedColors-csharp-python
-* langs: csharp, python
-- `forcedColors` <[ForcedColors]<"active"|"none"|"null">>
-
-Emulates `'forced-colors'` media feature, supported values are `'active'`, `'none'`. See [`method: Page.emulateMedia`] for more details. Passing `'null'` resets emulation to system defaults. Defaults to `'none'`.
-
-## context-option-contrast
-* langs: js, java
-- `contrast` <null|[Contrast]<"no-preference"|"more">>
-
-Emulates `'prefers-contrast'` media feature, supported values are `'no-preference'`, `'more'`. See [`method: Page.emulateMedia`] for more details. Passing `null` resets emulation to system defaults. Defaults to `'no-preference'`.
-
-## context-option-contrast-csharp-python
-* langs: csharp, python
-- `contrast` <[Contrast]<"no-preference"|"more"|"null">>
-
-Emulates `'prefers-contrast'` media feature, supported values are `'no-preference'`, `'more'`. See [`method: Page.emulateMedia`] for more details. Passing `'null'` resets emulation to system defaults. Defaults to `'no-preference'`.
 
 ## context-option-logger
 * langs: js
@@ -986,14 +938,7 @@ between the same pixel in compared images, between zero (strict) and one (lax), 
 - %%-context-option-extrahttpheaders-%%
 - %%-context-option-offline-%%
 - %%-context-option-httpcredentials-%%
-- %%-context-option-colorscheme-%%
-- %%-context-option-colorscheme-csharp-python-%%
-- %%-context-option-reducedMotion-%%
-- %%-context-option-reducedMotion-csharp-python-%%
-- %%-context-option-forcedColors-%%
-- %%-context-option-forcedColors-csharp-python-%%
-- %%-context-option-contrast-%%
-- %%-context-option-contrast-csharp-python-%%
+
 - %%-context-option-logger-%%
 - %%-context-option-videospath-%%
 - %%-context-option-videosize-%%

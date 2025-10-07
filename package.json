@@ -16,22 +16,12 @@
   },
   "license": "Apache-2.0",
   "scripts": {
-    "ctest": "playwright test --config=tests/library/playwright.config.ts --project=chromium-*",
-    "ftest": "playwright test --config=tests/library/playwright.config.ts --project=firefox-*",
-    "wtest": "playwright test --config=tests/library/playwright.config.ts --project=webkit-*",
-    "atest": "playwright test --config=tests/android/playwright.config.ts",
     "etest": "playwright test --config=tests/electron/playwright.config.ts",
-    "webview2test": "playwright test --config=tests/webview2/playwright.config.ts",
     "itest": "playwright test --config=tests/installation/playwright.config.ts",
     "stest": "playwright test --config=tests/stress/playwright.config.ts",
-    "biditest": "playwright test --config=tests/bidi/playwright.config.ts",
-    "test-html-reporter": "playwright test --config=packages/html-reporter",
-    "test-web": "playwright test --config=packages/web",
     "ttest": "node ./tests/playwright-test/stable-test-runner/node_modules/@playwright/test/cli test --config=tests/playwright-test/playwright.config.ts",
-    "ct": "playwright test tests/components/test-all.spec.js --reporter=list",
     "test": "playwright test --config=tests/library/playwright.config.ts",
     "test-mcp": "playwright test --config=tests/mcp/playwright.config.ts",
-    "ctest-mcp": "playwright test --config=tests/mcp/playwright.config.ts --project=chrome",
     "etest-mcp": "playwright test --config=tests/mcp/playwright.config.extension.ts",
     "eslint": "eslint --cache",
     "tsc": "tsc -p . && tsc -p packages/html-reporter/",
@@ -46,11 +36,11 @@
     "test-types": "node utils/generate_types/ && tsc -p utils/generate_types/test/tsconfig.json && tsc -p ./tests/",
     "roll": "node utils/roll_browser.js",
     "check-deps": "node utils/check_deps.js",
-    "build-android-driver": "./utils/build_android_driver.sh",
+
     "innerloop": "playwright run-server --reuse-browser"
   },
   "workspaces": [
-    "packages/*"
+    "packages/playwright-core-electron-only"
   ],
   "devDependencies": {
     "@actions/core": "^1.10.0",

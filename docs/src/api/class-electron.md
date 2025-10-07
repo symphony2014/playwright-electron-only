@@ -95,7 +95,7 @@ Maximum time in milliseconds to wait for the application to start. Defaults to `
 ### option: Electron.launch.bypassCSP = %%-context-option-bypasscsp-%%
 * since: v1.12
 
-### option: Electron.launch.colorScheme = %%-context-option-colorscheme-%%
+
 * since: v1.12
 
 ### option: Electron.launch.extraHTTPHeaders = %%-context-option-extrahttpheaders-%%

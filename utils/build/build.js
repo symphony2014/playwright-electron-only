@@ -243,56 +243,7 @@ function copyFile(file, from, to) {
 /** @type {BundleOptions[]} */
 const bundles = [];
 
-bundles.push({
-  modulePath: 'packages/playwright/bundles/babel',
-  outdir: 'packages/playwright/lib/transform',
-  entryPoints: ['src/babelBundleImpl.ts'],
-  external: ['playwright'],
-});
 
-bundles.push({
-  modulePath: 'packages/playwright/bundles/expect',
-  outdir: 'packages/playwright/lib/common',
-  entryPoints: ['src/expectBundleImpl.ts'],
-});
-
-bundles.push({
-  modulePath: 'packages/playwright/bundles/mcp',
-  outdir: 'packages/playwright/lib',
-  entryPoints: ['src/mcpBundleImpl.ts'],
-  external: ['express'],
-  alias: {
-    'raw-body': 'raw-body.ts',
-  },
-});
-
-bundles.push({
-  modulePath: 'packages/playwright/bundles/utils',
-  outdir: 'packages/playwright/lib',
-  entryPoints: ['src/utilsBundleImpl.ts'],
-  external: ['fsevents'],
-});
-
-bundles.push({
-  modulePath: 'packages/playwright-core/bundles/utils',
-  outfile: 'packages/playwright-core/lib/utilsBundleImpl/index.js',
-  entryPoints: ['src/utilsBundleImpl.ts'],
-});
-
-bundles.push({
-  modulePath: 'packages/playwright-core/bundles/zip',
-  outdir: 'packages/playwright-core/lib',
-  entryPoints: ['src/zipBundleImpl.ts'],
-});
-
-
-// @playwright/client
-bundles.push({
-  modulePath: 'packages/playwright-client',
-  outdir: 'packages/playwright-client/lib',
-  entryPoints: ['src/index.ts'],
-  minify: false,
-});
 
 class GroupStep extends Step {
   /** @param {Step[]} steps */
@@ -313,20 +264,11 @@ class GroupStep extends Step {
 /** @type {Step[]} */
 const updateSteps = [];
 
-// Update test runner.
-updateSteps.push(new ProgramStep({
-  command: 'npm',
-  args: ['ci', '--save=false', '--fund=false', '--audit=false'],
-  shell: true,
-  cwd: path.join(__dirname, '..', '..', 'tests', 'playwright-test', 'stable-test-runner'),
-  concurrent: true,
-}));
+
 
 // Update bundles.
 for (const bundle of bundles) {
-  // Do not update @playwright/client, it has not its own deps.
-  if (bundle.modulePath === 'packages/playwright-client')
-    continue;
+
 
   const packageJson = path.join(filePath(bundle.modulePath), 'package.json');
   if (!fs.existsSync(packageJson))
@@ -437,9 +379,7 @@ class CustomCallbackStep extends Step {
 for (const pkg of workspace.packages()) {
   if (!fs.existsSync(path.join(pkg.path, 'src')))
     continue;
-  // playwright-client is built as a bundle.
-  if (['@playwright/client'].includes(pkg.name))
-    continue;
+
 
   steps.push(new EsbuildStep({
     entryPoints: [path.join(pkg.path, 'src/**/*.ts')],
@@ -450,18 +390,7 @@ for (const pkg of workspace.packages()) {
   }));
 }
 
-function copyXdgOpen() {
-  const outdir = filePath('packages/playwright-core/lib/utilsBundleImpl');
-  if (!fs.existsSync(outdir))
-    fs.mkdirSync(outdir, { recursive: true });
 
-  // 'open' package requires 'xdg-open' binary to be present, which does not get bundled by esbuild.
-  fs.copyFileSync(filePath('packages/playwright-core/bundles/utils/node_modules/open/xdg-open'), path.join(outdir, 'xdg-open'));
-  console.log('==== Copied xdg-open to', path.join(outdir, 'xdg-open'));
-}
-
-// Copy xdg-open after bundles 'npm ci' has finished.
-steps.push(new CustomCallbackStep(copyXdgOpen));
 
 function pkgNameFromPath(p) {
   const i = p.split(path.sep);
@@ -519,82 +448,16 @@ for (const bundle of bundles) {
   steps.push(new EsbuildStep(options));
 }
 
-// Build/watch trace viewer service worker.
-steps.push(new ProgramStep({
-  command: 'npx',
-  args: [
-    'vite',
-    '--config',
-    'vite.sw.config.ts',
-    'build',
-    ...(watchMode ? ['--watch', '--minify=false'] : []),
-    ...(withSourceMaps ? ['--sourcemap=inline'] : []),
-  ],
-  shell: true,
-  cwd: path.join(__dirname, '..', '..', 'packages', 'trace-viewer'),
-  concurrent: watchMode, // feeds into trace-viewer's `public` directory, so it needs to be finished before trace-viewer build starts
-}));
 
-if (watchMode) {
-  // the build above outputs into `packages/trace-viewer/public`, where the `vite build` for `packages/trace-viewer` is supposed to pick it up.
-  // there's a bug in `vite build --watch` though where the public dir is only copied over initially, but its not watched.
-  // to work around this, we run a second watch build of the service worker into the final output.
-  // bug: https://github.com/vitejs/vite/issues/18655
-  steps.push(new ProgramStep({
-    command: 'npx',
-    args: [
-      'vite', '--config', 'vite.sw.config.ts',
-      'build', '--watch', '--minify=false',
-      '--outDir', path.join(__dirname, '..', '..', 'packages', 'playwright-core', 'lib', 'vite', 'traceViewer'),
-      '--emptyOutDir=false',
-      '--clearScreen=false',
-    ],
-    shell: true,
-    cwd: path.join(__dirname, '..', '..', 'packages', 'trace-viewer'),
-    concurrent: true
-  }));
-}
 
-// Build/watch web packages.
-for (const webPackage of ['html-reporter', 'recorder', 'trace-viewer']) {
-  steps.push(new ProgramStep({
-    command: 'npx',
-    args: [
-      'vite',
-      'build',
-      ...(watchMode ? ['--watch', '--minify=false'] : []),
-      ...(withSourceMaps ? ['--sourcemap=inline'] : []),
-      '--clearScreen=false',
-    ],
-    shell: true,
-    cwd: path.join(__dirname, '..', '..', 'packages', webPackage),
-    concurrent: true,
-  }));
-}
+
+
+
 
 // web packages dev server
 if (watchMode) {
-  steps.push(new ProgramStep({
-    command: 'npx',
-    args: ['vite', '--port', '44223', '--base', '/trace/', '--clearScreen=false'],
-    shell: true,
-    cwd: path.join(__dirname, '..', '..', 'packages', 'trace-viewer'),
-    concurrent: true,
-  }));
-  steps.push(new ProgramStep({
-    command: 'npx',
-    args: ['vite', '--port', '44224', '--clearScreen=false'],
-    shell: true,
-    cwd: path.join(__dirname, '..', '..', 'packages', 'html-reporter'),
-    concurrent: true,
-  }));
-  steps.push(new ProgramStep({
-    command: 'npx',
-    args: ['vite', '--port', '44225', '--clearScreen=false'],
-    shell: true,
-    cwd: path.join(__dirname, '..', '..', 'packages', 'recorder'),
-    concurrent: true,
-  }));
+
+
 }
 
 // Generate injected.
@@ -602,7 +465,7 @@ onChanges.push({
   inputs: [
     'packages/injected/src/**',
     'packages/playwright-core/src/third_party/**',
-    'packages/playwright-ct-core/src/injected/**',
+
     'packages/playwright-core/src/utils/isomorphic/**',
     'utils/generate_injected_builtins.js',
     'utils/generate_injected.js',
@@ -628,7 +491,7 @@ onChanges.push({
     'utils/generate_types/overrides-test.d.ts',
     'utils/generate_types/overrides-testReporter.d.ts',
     'utils/generate_types/exported.json',
-    'packages/playwright-core/src/server/chromium/protocol.d.ts',
+
   ],
   mustExist: [
     'packages/playwright-core/lib/server/deviceDescriptorsSource.json',
@@ -646,11 +509,7 @@ if (watchMode && !disableInstall) {
 }
 
 // The recorder and trace viewer have an app_icon.png that needs to be copied.
-copyFiles.push({
-  files: 'packages/playwright-core/src/server/chromium/*.png',
-  from: 'packages/playwright-core/src',
-  to: 'packages/playwright-core/lib',
-});
+
 
 // esbuild doesn't touch JS files, so copy them manually.
 // For example: diff_match_patch.js
@@ -684,14 +543,7 @@ if (watchMode) {
     shell: true,
     concurrent: true,
   }));
-  for (const webPackage of ['html-reporter', 'recorder', 'trace-viewer']) {
-    steps.push(new ProgramStep({
-      command: 'npx',
-      args: ['tsc', ...(watchMode ? ['-w'] : []), '--preserveWatchOutput', '-p', quotePath(filePath(`packages/${webPackage}`))],
-      shell: true,
-      concurrent: true,
-    }));
-  }
+
 }
 
 let cleanupCalled = false;
