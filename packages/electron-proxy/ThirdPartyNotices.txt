@@ -1,4 +1,4 @@
-microsoft/playwright-core-electron-only
+microsoft/electron-proxy
 
 THIRD-PARTY SOFTWARE NOTICES AND INFORMATION
 
