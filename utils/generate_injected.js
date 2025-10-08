@@ -29,43 +29,37 @@ const injectedScripts = [
   [
     path.join(ROOT, 'packages', 'injected', 'src', 'utilityScript.ts'),
     path.join(ROOT, 'packages', 'injected', 'lib'),
-    path.join(ROOT, 'packages', 'playwright-core', 'src', 'generated'),
+    path.join(ROOT, 'packages', 'electron-proxy', 'src', 'generated'),
     true,
   ],
   [
     path.join(ROOT, 'packages', 'injected', 'src', 'injectedScript.ts'),
     path.join(ROOT, 'packages', 'injected', 'lib'),
-    path.join(ROOT, 'packages', 'playwright-core', 'src', 'generated'),
-    true,
-  ],
-  [
-    path.join(ROOT, 'packages', 'injected', 'src', 'recorder', 'pollingRecorder.ts'),
-    path.join(ROOT, 'packages', 'injected', 'lib'),
-    path.join(ROOT, 'packages', 'playwright-core', 'src', 'generated'),
+    path.join(ROOT, 'packages', 'electron-proxy', 'src', 'generated'),
     true,
   ],
   [
     path.join(ROOT, 'packages', 'injected', 'src', 'clock.ts'),
     path.join(ROOT, 'packages', 'injected', 'lib'),
-    path.join(ROOT, 'packages', 'playwright-core', 'src', 'generated'),
+    path.join(ROOT, 'packages', 'electron-proxy', 'src', 'generated'),
     true,
   ],
   [
     path.join(ROOT, 'packages', 'injected', 'src', 'storageScript.ts'),
     path.join(ROOT, 'packages', 'injected', 'lib'),
-    path.join(ROOT, 'packages', 'playwright-core', 'src', 'generated'),
+    path.join(ROOT, 'packages', 'electron-proxy', 'src', 'generated'),
     true,
   ],
   [
     path.join(ROOT, 'packages', 'injected', 'src', 'bindingsController.ts'),
     path.join(ROOT, 'packages', 'injected', 'lib'),
-    path.join(ROOT, 'packages', 'playwright-core', 'src', 'generated'),
+    path.join(ROOT, 'packages', 'electron-proxy', 'src', 'generated'),
     true,
   ],
   [
     path.join(ROOT, 'packages', 'injected', 'src', 'webSocketMock.ts'),
     path.join(ROOT, 'packages', 'injected', 'lib'),
-    path.join(ROOT, 'packages', 'playwright-core', 'src', 'generated'),
+    path.join(ROOT, 'packages', 'electron-proxy', 'src', 'generated'),
     true,
   ],
 
@@ -122,6 +116,12 @@ const inlineCSSPlugin = {
 
 (async () => {
   for (const [injected, outdir, generatedFolder, hasExports] of injectedScripts) {
+    // Check if the input file exists before trying to build it
+    if (!fs.existsSync(injected)) {
+      console.log(`Skipping ${injected} - file does not exist`);
+      continue;
+    }
+    
     await fs.promises.mkdir(generatedFolder, { recursive: true });
     const buildOutput = await esbuild.build({
       entryPoints: [injected],

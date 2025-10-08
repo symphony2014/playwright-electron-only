@@ -19,7 +19,6 @@ import os from 'os';
 import path from 'path';
 
 import { calculateSha1 } from './utils/crypto';
-import { HarBackend } from './harBackend';
 import { ManualPromise } from '../utils/isomorphic/manualPromise';
 import { ZipFile } from './utils/zipFile';
 import { yauzl, yazl } from '../zipBundle';
@@ -28,7 +27,6 @@ import { assert } from '../utils/isomorphic/assert';
 import { removeFolders } from './utils/fileUtils';
 
 import type * as channels from '@protocol/channels';
-import type * as har from '@trace/har';
 import type EventEmitter from 'events';
 import type { Progress } from '@protocol/progress';
 
@@ -137,44 +135,11 @@ async function deleteStackSession(progress: Progress, stackSessions: Map<string,
     await progress.race(removeFolders([session.tmpDir]));
 }
 
-export async function harOpen(progress: Progress, harBackends: Map<string, HarBackend>, params: channels.LocalUtilsHarOpenParams): Promise<channels.LocalUtilsHarOpenResult> {
-  let harBackend: HarBackend;
-  if (params.file.endsWith('.zip')) {
-    const zipFile = new ZipFile(params.file);
-    try {
-      const entryNames = await progress.race(zipFile.entries());
-      const harEntryName = entryNames.find(e => e.endsWith('.har'));
-      if (!harEntryName)
-        return { error: 'Specified archive does not have a .har file' };
-      const har = await progress.race(zipFile.read(harEntryName));
-      const harFile = JSON.parse(har.toString()) as har.HARFile;
-      harBackend = new HarBackend(harFile, null, zipFile);
-    } catch (error) {
-      zipFile.close();
-      throw error;
-    }
-  } else {
-    const harFile = JSON.parse(await progress.race(fs.promises.readFile(params.file, 'utf-8'))) as har.HARFile;
-    harBackend = new HarBackend(harFile, path.dirname(params.file), null);
-  }
-  harBackends.set(harBackend.id, harBackend);
-  return { harId: harBackend.id };
-}
 
-export async function harLookup(progress: Progress, harBackends: Map<string, HarBackend>, params: channels.LocalUtilsHarLookupParams): Promise<channels.LocalUtilsHarLookupResult> {
-  const harBackend = harBackends.get(params.harId);
-  if (!harBackend)
-    return { action: 'error', message: `Internal error: har was not opened` };
-  return await progress.race(harBackend.lookup(params.url, params.method, params.headers, params.postData, params.isNavigationRequest));
-}
 
-export function harClose(harBackends: Map<string, HarBackend>, params: channels.LocalUtilsHarCloseParams) {
-  const harBackend = harBackends.get(params.harId);
-  if (harBackend) {
-    harBackends.delete(harBackend.id);
-    harBackend.dispose();
-  }
-}
+
+
+
 
 export async function harUnzip(progress: Progress, params: channels.LocalUtilsHarUnzipParams): Promise<void> {
   const dir = path.dirname(params.zipFile);

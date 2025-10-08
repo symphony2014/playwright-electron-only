@@ -19,7 +19,6 @@ import { BrowserContext, validateBrowserContextOptions } from './browserContext'
 import { Download } from './download';
 import { SdkObject } from './instrumentation';
 import { Page } from './page';
-import { ClientCertificatesProxy } from './socksClientCertificatesInterceptor';
 
 import type * as types from './types';
 import type { ProxySettings } from './types';
@@ -87,22 +86,18 @@ export abstract class Browser extends SdkObject {
   abstract userAgent(): string;
 
   sdkLanguage() {
-    return this.options.sdkLanguage || this.attribution.playwright.options.sdkLanguage;
+    return this.options.sdkLanguage;  
   }
 
   async newContext(progress: Progress, options: types.BrowserContextOptions): Promise<BrowserContext> {
     validateBrowserContextOptions(options, this.options);
-    let clientCertificatesProxy: ClientCertificatesProxy | undefined;
     let context: BrowserContext | undefined;
     try {
       if (options.clientCertificates?.length) {
-        clientCertificatesProxy = await ClientCertificatesProxy.create(progress, options);
         options = { ...options };
-        options.proxyOverride = clientCertificatesProxy.proxySettings();
         options.internalIgnoreHTTPSErrors = true;
       }
       context = await progress.race(this.doCreateNewContext(options));
-      context._clientCertificatesProxy = clientCertificatesProxy;
       if ((options as any).__testHookBeforeSetStorageState)
         await progress.race((options as any).__testHookBeforeSetStorageState());
       await context.setStorageState(progress, options.storageState, 'initial');
@@ -110,7 +105,6 @@ export abstract class Browser extends SdkObject {
       return context;
     } catch (error) {
       await context?.close({ reason: 'Failed to create context' }).catch(() => {});
-      await clientCertificatesProxy?.close().catch(() => {});
       throw error;
     }
   }

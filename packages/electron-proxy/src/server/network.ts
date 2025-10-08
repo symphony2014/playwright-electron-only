@@ -16,7 +16,6 @@
 
 import { assert } from '../utils';
 import { BrowserContext } from './browserContext';
-import { APIRequestContext } from './fetch';
 import { SdkObject } from './instrumentation';
 import { ManualPromise } from '../utils/isomorphic/manualPromise';
 
@@ -309,9 +308,6 @@ export class Route extends SdkObject {
     let isBase64 = overrides.isBase64 || false;
     if (body === undefined) {
       if (overrides.fetchResponseUid) {
-        const buffer = this._request._context.fetchRequest.fetchResponses.get(overrides.fetchResponseUid) || APIRequestContext.findResponseBody(overrides.fetchResponseUid);
-        assert(buffer, 'Fetch response has been disposed');
-        body = buffer.toString('base64');
         isBase64 = true;
       } else {
         body = '';

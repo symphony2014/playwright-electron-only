@@ -23,19 +23,16 @@ import type { BrowserContext } from './browserContext';
 import type { BrowserType } from './browserType';
 import type { Dialog } from './dialog';
 import type { Download } from './download';
-import type { APIRequestContext } from './fetch';
 import type { Frame } from './frames';
 import type { Page } from './page';
-import type { Playwright } from './playwright';
 import type { CallMetadata } from '@protocol/callMetadata';
 export type { CallMetadata } from '@protocol/callMetadata';
 import type { LogName } from './utils/debugLogger';
 
 export type Attribution = {
-  playwright: Playwright;
   browserType?: BrowserType;
   browser?: Browser;
-  context?: BrowserContext | APIRequestContext;
+  context?: BrowserContext  ;
   page?: Page;
   frame?: Frame;
 };
@@ -63,7 +60,7 @@ export function createRootSdkObject() {
 }
 
 export interface Instrumentation {
-  addListener(listener: InstrumentationListener, context: BrowserContext | APIRequestContext | null): void;
+  addListener(listener: InstrumentationListener, context: BrowserContext | null): void;
   removeListener(listener: InstrumentationListener): void;
   onBeforeCall(sdkObject: SdkObject, metadata: CallMetadata): Promise<void>;
   onBeforeInputAction(sdkObject: SdkObject, metadata: CallMetadata): Promise<void>;
@@ -91,13 +88,13 @@ export interface InstrumentationListener {
 }
 
 export function createInstrumentation(): Instrumentation {
-  const listeners = new Map<InstrumentationListener, BrowserContext | APIRequestContext | null>();
+  const listeners = new Map<InstrumentationListener, BrowserContext | null>();
   return new Proxy({}, {
     get: (obj: any, prop: string | symbol) => {
       if (typeof prop !== 'string')
         return obj[prop];
       if (prop === 'addListener')
-        return (listener: InstrumentationListener, context: BrowserContext | APIRequestContext | null) => listeners.set(listener, context);
+        return (listener: InstrumentationListener, context: BrowserContext | null) => listeners.set(listener, context);
       if (prop === 'removeListener')
         return (listener: InstrumentationListener) => listeners.delete(listener);
       if (!prop.startsWith('on'))

@@ -285,18 +285,20 @@ for (const bundle of bundles) {
 steps.push(new GroupStep(updateSteps));
 
 // Generate third party licenses for bundles.
-steps.push(new ProgramStep({
-  command: 'node',
-  args: [path.resolve(__dirname, '../generate_third_party_notice.js')],
-  shell: true,
-}));
+// steps.push(new ProgramStep({
+//   command: 'node',
+//   args: [path.resolve(__dirname, '../generate_third_party_notice.js')],
+//   shell: true,
+// }));
 
-// Build injected icons.
-steps.push(new ProgramStep({
-  command: 'node',
-  args: ['utils/generate_clip_paths.js'],
-  shell: true,
-}));
+// Build injected icons - only if the necessary files exist
+if (fs.existsSync('packages/injected/src/recorder/icons/gripper.svg')) {
+  steps.push(new ProgramStep({
+    command: 'node',
+    args: ['utils/generate_clip_paths.js'],
+    shell: true,
+  }));
+}
 
 // Build injected scripts.
 steps.push(new ProgramStep({
@@ -348,13 +350,7 @@ class EsbuildStep extends Step {
     do {
       this._sourcesChanged = false;
       this._rebuilding = true;
-      try {
-        await this._context?.rebuild();
-      } catch (e) {
-        // Ignore. Esbuild inherits stderr and already logs nicely formatted errors
-        // before throwing.
-      }
-
+      await this._context?.rebuild();
       this._rebuilding = false;
     } while (this._sourcesChanged);
   }
@@ -388,6 +384,30 @@ for (const pkg of workspace.packages()) {
     platform: 'node',
     format: 'cjs',
   }));
+  
+  // Also build the utilsBundleImpl from bundles/utils/src for electron-proxy package
+  if (path.basename(pkg.path) === 'electron-proxy' && fs.existsSync(path.join(pkg.path, 'bundles', 'utils', 'src'))) {
+    steps.push(new EsbuildStep({
+      entryPoints: [path.join(pkg.path, 'bundles', 'utils', 'src', 'utilsBundleImpl.ts')],
+      outfile: `${path.join(pkg.path, 'lib', 'utilsBundleImpl.js')}`,
+      sourcemap: withSourceMaps ? 'linked' : false,
+      platform: 'node',
+      format: 'cjs',
+      bundle: true,
+    }));
+  }
+  
+  // Also build the zipBundleImpl from bundles/zip/src for electron-proxy package
+  if (path.basename(pkg.path) === 'electron-proxy' && fs.existsSync(path.join(pkg.path, 'bundles', 'zip', 'src'))) {
+    steps.push(new EsbuildStep({
+      entryPoints: [path.join(pkg.path, 'bundles', 'zip', 'src', 'zipBundleImpl.ts')],
+      outfile: `${path.join(pkg.path, 'lib', 'zipBundleImpl.js')}`,
+      sourcemap: withSourceMaps ? 'linked' : false,
+      platform: 'node',
+      format: 'cjs',
+      bundle: true,
+    }));
+  }
 }
 
 
@@ -429,8 +449,27 @@ const pkgSizePlugin = {
 for (const bundle of bundles) {
   /** @type {import('esbuild').BuildOptions} */
   const options = {
-    bundle: true,
     format: 'cjs',
+    bundle: true,
+    external: [
+      'colors/safe',
+      'debug',
+      'diff',
+      'dotenv',
+      'proxy-from-env',
+      'https-proxy-agent',
+      'jpeg-js',
+      'proper-lockfile',
+      'mime',
+      'minimatch',
+      'open',
+      'pngjs',
+      'commander',
+      'progress',
+      'socks-proxy-agent',
+      'yaml',
+      'ws',
+    ],
     platform: 'node',
     target: 'ES2019',
     sourcemap: watchMode,
@@ -461,14 +500,18 @@ if (watchMode) {
 }
 
 // Generate injected.
+// Only run if the necessary files exist
 onChanges.push({
   inputs: [
     'packages/injected/src/**',
-    'packages/playwright-core/src/third_party/**',
+    'packages/electron-proxy/src/third_party/**',
 
-    'packages/playwright-core/src/utils/isomorphic/**',
+    'packages/electron-proxy/src/utils/isomorphic/**',
     'utils/generate_injected_builtins.js',
     'utils/generate_injected.js',
+  ],
+  mustExist: [
+    'packages/injected/src/recorder/icons/gripper.svg', // Check if icons exist
   ],
   script: 'utils/generate_injected.js',
 });
@@ -494,7 +537,7 @@ onChanges.push({
 
   ],
   mustExist: [
-    'packages/playwright-core/lib/server/deviceDescriptorsSource.json',
+    'packages/electron-proxy/lib/server/deviceDescriptorsSource.json',
   ],
   script: 'utils/generate_types/index.js',
 });
@@ -502,7 +545,7 @@ onChanges.push({
 if (watchMode && !disableInstall) {
   // Keep browser installs up to date.
   onChanges.push({
-    inputs: ['packages/playwright-core/browsers.json'],
+    inputs: ['packages/electron-proxy/browsers.json'],
     command: 'npx',
     args: ['playwright', 'install'],
   });
@@ -514,19 +557,19 @@ if (watchMode && !disableInstall) {
 // esbuild doesn't touch JS files, so copy them manually.
 // For example: diff_match_patch.js
 copyFiles.push({
-  files: 'packages/playwright-core/src/**/*.js',
-  from: 'packages/playwright-core/src',
-  to: 'packages/playwright-core/lib',
+  files: 'packages/electron-proxy/src/**/*.js',
+  from: 'packages/electron-proxy/src',
+  to: 'packages/electron-proxy/lib',
   ignored: ['**/.eslintrc.js', '**/injected/**/*']
 });
 
 // Sometimes we require JSON files that esbuild ignores.
 // For example, deviceDescriptorsSource.json
 copyFiles.push({
-  files: 'packages/playwright-core/src/**/*.json',
+  files: 'packages/electron-proxy/src/**/*.json',
   ignored: ['**/injected/**/*'],
-  from: 'packages/playwright-core/src',
-  to: 'packages/playwright-core/lib',
+  from: 'packages/electron-proxy/src',
+  to: 'packages/electron-proxy/lib',
 });
 
 copyFiles.push({

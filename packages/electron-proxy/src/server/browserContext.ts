@@ -18,31 +18,23 @@
 import fs from 'fs';
 import path from 'path';
 
-import { createGuid } from './utils/crypto';
 import { debugMode } from './utils/debug';
 import { Clock } from './clock';
-import { Debugger } from './debugger';
 import { DialogManager } from './dialog';
-import { BrowserContextAPIRequestContext } from './fetch';
 import { mkdirIfNeeded } from './utils/fileUtils';
 import { rewriteErrorMessage } from '../utils/isomorphic/stackTrace';
-import { HarRecorder } from './har/harRecorder';
 import { helper } from './helper';
 import { SdkObject } from './instrumentation';
 import * as network from './network';
 import { InitScript } from './page';
 import { Page, PageBinding } from './page';
-import { RecorderApp } from './recorder/recorderApp';
 import { Selectors } from './selectors';
-import { Tracing } from './trace/recorder/tracing';
 import * as rawStorageSource from '../generated/storageScriptSource';
 
-import type { Artifact } from './artifact';
 import type { Browser, BrowserOptions } from './browser';
 import type { Download } from './download';
 import type * as frames from './frames';
 import type { Progress } from './progress';
-import type { ClientCertificatesProxy } from './socksClientCertificatesInterceptor';
 import type { SerializedStorage } from '@injected/storageScript';
 import type * as types from './types';
 import type * as channels from '@protocol/channels';
@@ -80,19 +72,14 @@ export abstract class BrowserContext extends SdkObject {
   readonly _browserContextId: string | undefined;
   private _selectors: Selectors;
   private _origins = new Set<string>();
-  readonly _harRecorders = new Map<string, HarRecorder>();
-  readonly tracing: Tracing;
-  readonly fetchRequest: BrowserContextAPIRequestContext;
   private _customCloseHandler?: () => Promise<any>;
   readonly _tempDirs: string[] = [];
   private _creatingStorageStatePage = false;
   bindingsInitScript?: InitScript;
   initScripts: InitScript[] = [];
   private _routesInFlight = new Set<network.Route>();
-  private _debugger!: Debugger;
   _closeReason: string | undefined;
   readonly clock: Clock;
-  _clientCertificatesProxy: ClientCertificatesProxy | undefined;
   private _playwrightBindingExposed?: Promise<void>;
   readonly dialogManager: DialogManager;
 
@@ -106,8 +93,6 @@ export abstract class BrowserContext extends SdkObject {
     this._closePromise = new Promise(fulfill => this._closePromiseFulfill = fulfill);
     this._selectors = new Selectors(options.selectorEngines || [], options.testIdAttributeName);
 
-    this.fetchRequest = new BrowserContextAPIRequestContext(this);
-    this.tracing = new Tracing(this, browser.options.tracesDir);
     this.clock = new Clock(this);
     this.dialogManager = new DialogManager(this.instrumentation);
   }
@@ -121,23 +106,11 @@ export abstract class BrowserContext extends SdkObject {
   }
 
   async _initialize() {
-    if (this.attribution.playwright.options.isInternalPlaywright)
-      return;
+ 
     // Debugger will pause execution upon page.pause in headed mode.
-    this._debugger = new Debugger(this);
 
-    // When PWDEBUG=1, show inspector for each context.
-    if (debugMode() === 'inspector')
-      await RecorderApp.show(this, { pauseOnNextStatement: true });
 
-    // When paused, show inspector.
-    if (this._debugger.isPaused())
-      RecorderApp.showInspectorNoReply(this);
 
-    this._debugger.on(Debugger.Events.PausedStateChanged, () => {
-      if (this._debugger.isPaused())
-        RecorderApp.showInspectorNoReply(this);
-    });
 
     if (debugMode() === 'console') {
       await this.extendInjectedScript(`
@@ -152,9 +125,6 @@ export abstract class BrowserContext extends SdkObject {
       await this.grantPermissions(this._options.permissions);
   }
 
-  debugger(): Debugger {
-    return this._debugger;
-  }
 
   async _ensureVideosPath() {
     if (this._options.recordVideo)
@@ -185,7 +155,6 @@ export abstract class BrowserContext extends SdkObject {
   }
 
   async resetForReuse(progress: Progress, params: channels.BrowserNewContextForReuseParams | null) {
-    await this.tracing.resetForReuse(progress);
 
     if (params) {
       for (const key of paramsThatAllowContextReuse)
@@ -230,8 +199,6 @@ export abstract class BrowserContext extends SdkObject {
       // at the same time.
       return;
     }
-    this._clientCertificatesProxy?.close().catch(() => {});
-    this.tracing.abort();
     if (this._isPersistentContext)
       this.onClosePersistent();
     this._closePromiseFulfill!(new Error('Context closed'));
@@ -506,9 +473,7 @@ export abstract class BrowserContext extends SdkObject {
       this.emit(BrowserContext.Events.BeforeClose);
       this._closedStatus = 'closing';
 
-      for (const harRecorder of this._harRecorders.values())
-        await harRecorder.flush();
-      await this.tracing.flush();
+
 
       // Cleanup.
       const promises: Promise<void>[] = [];
@@ -679,16 +644,9 @@ export abstract class BrowserContext extends SdkObject {
     await Promise.all(this.pages().map(page => page.safeNonStallingEvaluateInAllFrames(expression, world, options)));
   }
 
-  harStart(page: Page | null, options: channels.RecordHarOptions): string {
-    const harId = createGuid();
-    this._harRecorders.set(harId, new HarRecorder(this, page, options));
-    return harId;
-  }
 
-  async harExport(harId: string | undefined): Promise<Artifact> {
-    const recorder = this._harRecorders.get(harId || '')!;
-    return recorder.export();
-  }
+
+
 
   addRouteInFlight(route: network.Route) {
     this._routesInFlight.add(route);

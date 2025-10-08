@@ -26,35 +26,10 @@ import { debugLogger } from './debugLogger';
 import { currentZone, emptyZone } from './zones';
 import { debugMode, isUnderTest } from './debug';
 
-import type { Platform, Zone } from '../../client/platform';
 import type { Zone as ZoneImpl } from './zones';
 import type * as channels from '@protocol/channels';
 
 const pipelineAsync = util.promisify(pipeline);
-
-class NodeZone implements Zone {
-  private _zone: ZoneImpl;
-
-  constructor(zone: ZoneImpl) {
-    this._zone = zone;
-  }
-
-  push<T>(data: T) {
-    return new NodeZone(this._zone.with('apiZone', data));
-  }
-
-  pop() {
-    return new NodeZone(this._zone.without('apiZone'));
-  }
-
-  run<R>(func: () => R): R {
-    return this._zone.run(func);
-  }
-
-  data<T>(): T | undefined {
-    return this._zone.data('apiZone');
-  }
-}
 
 let boxedStackPrefixes: string[] = [];
 export function setBoxedStackPrefixes(prefixes: string[]) {
@@ -62,72 +37,6 @@ export function setBoxedStackPrefixes(prefixes: string[]) {
 }
 
 const coreDir = path.dirname(require.resolve('../../../package.json'));
-
-export const nodePlatform: Platform = {
-  name: 'node',
-
-  boxedStackPrefixes: () => {
-    if (process.env.PWDEBUGIMPL)
-      return [];
-    return [coreDir, ...boxedStackPrefixes];
-  },
-
-  calculateSha1: (text: string) => {
-    const sha1 = crypto.createHash('sha1');
-    sha1.update(text);
-    return Promise.resolve(sha1.digest('hex'));
-  },
-
-  colors,
-
-  coreDir,
-
-  createGuid: () => crypto.randomBytes(16).toString('hex'),
-
-  defaultMaxListeners: () => EventEmitter.defaultMaxListeners,
-  fs: () => fs,
-
-  env: process.env,
-
-  inspectCustom: util.inspect.custom,
-
-  isDebugMode: () => debugMode() === 'inspector',
-
-  isJSDebuggerAttached: () => !!require('inspector').url(),
-
-  isLogEnabled(name: 'api' | 'channel') {
-    return debugLogger.isEnabled(name);
-  },
-
-  isUnderTest: () => isUnderTest(),
-
-  log(name: 'api' | 'channel', message: string | Error | object) {
-    debugLogger.log(name, message);
-  },
-
-  path: () => path,
-
-  pathSeparator: path.sep,
-
-  showInternalStackFrames: () => !!process.env.PWDEBUGIMPL,
-
-  async streamFile(path: string, stream: Writable): Promise<void> {
-    await pipelineAsync(fs.createReadStream(path), stream);
-  },
-
-  streamReadable: (channel: channels.StreamChannel) => {
-    return new ReadableStreamImpl(channel);
-  },
-
-  streamWritable: (channel: channels.WritableStreamChannel) => {
-    return new WritableStreamImpl(channel);
-  },
-
-  zones: {
-    current: () => new NodeZone(currentZone()),
-    empty: new NodeZone(emptyZone),
-  }
-};
 
 class ReadableStreamImpl extends Readable {
   private _channel: channels.StreamChannel;

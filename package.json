@@ -2,7 +2,7 @@
   "name": "playwright-internal",
   "private": true,
   "version": "1.57.0-next",
-  "description": "A high-level API to automate web browsers",
+  "main": "index.js",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/microsoft/playwright.git"
@@ -16,13 +16,8 @@
   },
   "license": "Apache-2.0",
   "scripts": {
-    "etest": "playwright test --config=tests/electron/playwright.config.ts",
-    "itest": "playwright test --config=tests/installation/playwright.config.ts",
-    "stest": "playwright test --config=tests/stress/playwright.config.ts",
-    "ttest": "node ./tests/playwright-test/stable-test-runner/node_modules/@playwright/test/cli test --config=tests/playwright-test/playwright.config.ts",
-    "test": "playwright test --config=tests/library/playwright.config.ts",
-    "test-mcp": "playwright test --config=tests/mcp/playwright.config.ts",
-    "etest-mcp": "playwright test --config=tests/mcp/playwright.config.extension.ts",
+    "test-app": "electron ./simple-electron-app.mjs",
+    "test": "playwright test --config=packages/electron-proxy/tests/playwright.config.ts",
     "eslint": "eslint --cache",
     "tsc": "tsc -p . && tsc -p packages/html-reporter/",
     "doc": "node utils/doclint/cli.js",
@@ -36,11 +31,10 @@
     "test-types": "node utils/generate_types/ && tsc -p utils/generate_types/test/tsconfig.json && tsc -p ./tests/",
     "roll": "node utils/roll_browser.js",
     "check-deps": "node utils/check_deps.js",
-
     "innerloop": "playwright run-server --reuse-browser"
   },
   "workspaces": [
-    "packages/playwright-core-electron-only"
+    "packages/electron-proxy"
   ],
   "devDependencies": {
     "@actions/core": "^1.10.0",
@@ -51,13 +45,20 @@
     "@eslint/js": "^9.34.0",
     "@modelcontextprotocol/sdk": "^1.17.5",
     "@octokit/graphql-schema": "^15.26.0",
+    "@playwright/test": "^1.56.0",
     "@stylistic/eslint-plugin": "^5.2.3",
     "@types/codemirror": "^5.60.7",
+    "@types/diff": "^7.0.2",
     "@types/formidable": "^2.0.4",
+    "@types/mime": "^3.0.4",
+    "@types/minimatch": "^5.1.2",
     "@types/node": "18.19.76",
+    "@types/pngjs": "^6.0.5",
+    "@types/progress": "^2.0.7",
+    "@types/proxy-from-env": "^1.0.4",
     "@types/react": "^19.1.13",
     "@types/react-dom": "^19.1.9",
-    "@types/ws": "^8.5.3",
+    "@types/ws": "^8.18.1",
     "@types/xml2js": "^0.4.9",
     "@typescript-eslint/eslint-plugin": "^8.41.0",
     "@typescript-eslint/parser": "^8.41.0",
@@ -71,7 +72,7 @@
     "colors": "^1.4.0",
     "concurrently": "^6.2.1",
     "cross-env": "^7.0.3",
-    "dotenv": "^16.4.5",
+    "dotenv": "^16.6.1",
     "electron": "^38.1.0",
     "esbuild": "^0.25.0",
     "eslint": "^9.34.0",
@@ -84,15 +85,30 @@
     "license-checker": "^25.0.1",
     "mime": "^3.0.0",
     "node-stream-zip": "^1.15.0",
+    "playwright-core": "^1.56.0",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "ssim.js": "^3.5.0",
     "typescript": "^5.9.2",
     "vite": "^6.3.6",
-    "ws": "^8.17.1",
+    "ws": "^8.18.3",
     "xml2js": "^0.5.0",
-    "yaml": "2.6.0",
+    "yaml": "^2.6.0",
     "zod": "^3.25.76",
     "zod-to-json-schema": "^3.24.6"
+  },
+  "dependencies": {
+    "commander": "^14.0.1",
+    "diff": "^8.0.2",
+    "https-proxy-agent": "^7.0.6",
+    "jpeg-js": "^0.4.4",
+    "minimatch": "^10.0.3",
+    "open": "^10.2.0",
+    "pngjs": "^7.0.0",
+    "progress": "^2.0.3",
+    "proxy-from-env": "^1.1.0",
+    "socks-proxy-agent": "^8.0.5",
+    "yauzl": "^3.2.0",
+    "yazl": "^3.3.1"
   }
 }

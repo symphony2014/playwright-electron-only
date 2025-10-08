@@ -20,7 +20,6 @@ import path from 'path';
 import { assert } from '../utils/isomorphic/assert';
 import { mime } from '../utilsBundle';
 
-import type { WritableStreamDispatcher } from './dispatchers/writableStreamDispatcher';
 import type { InputFilesItems } from './dom';
 import type { Frame } from './frames';
 import type * as types from './types';
@@ -42,9 +41,9 @@ export async function prepareFilesForUpload(frame: Frame, params: Omit<channels.
     throw new Error('Exactly one of payloads, localPaths and streams must be provided');
 
   if (streams)
-    localPaths = streams.map(c => (c as WritableStreamDispatcher).path());
+    localPaths = streams.map(c => (c as any ).path());
   if (directoryStream)
-    localDirectory = (directoryStream as WritableStreamDispatcher).path();
+    localDirectory = (directoryStream as any).path();
 
   if (localPaths) {
     for (const p of localPaths)

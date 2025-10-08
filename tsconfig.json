@@ -12,6 +12,8 @@
       */
       "@isomorphic/*": ["./packages/electron-proxy/src/utils/isomorphic/*"],
       "electron-proxy/lib/*": ["./packages/electron-proxy/src/*"],
+       "@protocol/*": ["./packages/protocol/src/*"],
+       "@injected/*": ["./packages/injected/src/*"]
     },
     "esModuleInterop": true,
     "strict": true,

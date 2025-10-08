@@ -30,7 +30,6 @@ import { PipeTransport } from './pipeTransport';
 import { envArrayToObject, launchProcess } from './utils/processLauncher';
 import {  isProtocolError } from './protocolError';
 import { registry } from './registry';
-import { ClientCertificatesProxy } from './socksClientCertificatesInterceptor';
 import { WebSocketTransport } from './transport';
 import { RecentLogsCollector } from './utils/debugLogger';
 
@@ -57,7 +56,7 @@ export abstract class BrowserType extends SdkObject {
   }
 
   executablePath(): string {
-    return registry.findExecutable(this._name).executablePath(this.attribution.playwright.options.sdkLanguage) || '';
+    throw 'BrowserType.executablePath is not implemented';
   }
 
   name(): string {
@@ -75,19 +74,14 @@ export abstract class BrowserType extends SdkObject {
   async launchPersistentContext(progress: Progress, userDataDir: string, options: channels.BrowserTypeLaunchPersistentContextOptions & { cdpPort?: number, internalIgnoreHTTPSErrors?: boolean, socksProxyPort?: number }): Promise<BrowserContext> {
     const launchOptions = this._validateLaunchOptions(options);
     // Note: Any initial TLS requests will fail since we rely on the Page/Frames initialize which sets ignoreHTTPSErrors.
-    let clientCertificatesProxy: ClientCertificatesProxy | undefined;
     if (options.clientCertificates?.length) {
-      clientCertificatesProxy = await ClientCertificatesProxy.create(progress, options);
-      launchOptions.proxyOverride = clientCertificatesProxy.proxySettings();
       options = { ...options };
       options.internalIgnoreHTTPSErrors = true;
     }
     try {
       const browser = await this._innerLaunchWithRetries(progress, launchOptions, options, helper.debugProtocolLogger(), userDataDir).catch(e => { throw this._rewriteStartupLog(e); });
-      browser._defaultContext!._clientCertificatesProxy = clientCertificatesProxy;
       return browser._defaultContext!;
     } catch (error) {
-      await clientCertificatesProxy?.close().catch(() => {});
       throw error;
     }
   }
@@ -187,8 +181,8 @@ export abstract class BrowserType extends SdkObject {
       const registryExecutable = registry.findExecutable(this.getExecutableName(options));
       if (!registryExecutable || registryExecutable.browserName !== this._name)
         throw new Error(`Unsupported ${this._name} channel "${options.channel}"`);
-      executable = registryExecutable.executablePathOrDie(this.attribution.playwright.options.sdkLanguage);
-      await registry.validateHostRequirementsForExecutablesIfNeeded([registryExecutable], this.attribution.playwright.options.sdkLanguage);
+      executable = registryExecutable.executablePathOrDie('');
+      await registry.validateHostRequirementsForExecutablesIfNeeded([registryExecutable]);
     }
 
     return { executable, browserArguments, userDataDir, artifactsDir, tempDirectories };
@@ -305,16 +299,7 @@ export abstract class BrowserType extends SdkObject {
   }
 
   protected _createUserDataDirArgMisuseError(userDataDirArg: string): Error {
-    switch (this.attribution.playwright.options.sdkLanguage) {
-      case 'java':
         return new Error(`Pass userDataDir parameter to 'BrowserType.launchPersistentContext(userDataDir, options)' instead of specifying '${userDataDirArg}' argument`);
-      case 'python':
-        return new Error(`Pass user_data_dir parameter to 'browser_type.launch_persistent_context(user_data_dir, **kwargs)' instead of specifying '${userDataDirArg}' argument`);
-      case 'csharp':
-        return new Error(`Pass userDataDir parameter to 'BrowserType.LaunchPersistentContextAsync(userDataDir, options)' instead of specifying '${userDataDirArg}' argument`);
-      default:
-        return new Error(`Pass userDataDir parameter to 'browserType.launchPersistentContext(userDataDir, options)' instead of specifying '${userDataDirArg}' argument`);
-    }
   }
 
   private _rewriteStartupLog(error: Error): Error {

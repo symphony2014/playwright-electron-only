@@ -1152,7 +1152,7 @@ export class Registry {
     };
   }
 
-  async validateHostRequirementsForExecutablesIfNeeded(executables: Executable[], sdkLanguage: string) {
+  async validateHostRequirementsForExecutablesIfNeeded(executables: Executable[], sdkLanguage: string='') {
     if (getAsBooleanFromENV('PLAYWRIGHT_SKIP_VALIDATE_HOST_REQUIREMENTS')) {
       // eslint-disable-next-line no-restricted-properties
       process.stderr.write('Skipping host requirements validation logic because `PLAYWRIGHT_SKIP_VALIDATE_HOST_REQUIREMENTS` env variable is set.\n');

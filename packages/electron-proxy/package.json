@@ -38,5 +38,8 @@
   "bin": {
     "electron-proxy": "cli.js"
   },
-  "types": "types/types.d.ts"
+  "types": "types/types.d.ts",
+  "dependencies": {
+    "playwright-internal": "file:../.."
+  }
 }
